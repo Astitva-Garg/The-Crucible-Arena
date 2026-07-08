@@ -20,6 +20,36 @@ The output is a Markdown report showing how the spec changed round by round, wha
 6. **Referee** — scores the patched spec on all four axes and decides whether another round is worth running.
 7. Repeat from step 3, up to 4 rounds, or stop early once every axis scores well and stops improving.
 
+```mermaid
+flowchart TD
+    START([Start]) --> InitialScore[Initial referee score<br/>on raw draft]
+    InitialScore -->|already strong| END([End])
+    InitialScore -->|needs work| EnterArena[Enter arena]
+
+    EnterArena --> CriticTech[Technical Architect]
+    EnterArena --> CriticSecurity[Security & Compliance]
+    EnterArena --> CriticUser[Cynical User]
+    EnterArena --> CriticFinance[Finance & Business]
+
+    CriticTech --> Sieve[Sieve: dedupe findings,<br/>check for regressions]
+    CriticSecurity --> Sieve
+    CriticUser --> Sieve
+    CriticFinance --> Sieve
+
+    Sieve --> PatchTech[Patch: technical fixes]
+    PatchTech --> PatchSecurity[Patch: security fixes]
+    PatchSecurity --> PatchUser[Patch: UX fixes]
+    PatchUser --> PatchFinance[Patch: business fixes]
+    PatchFinance --> Referee[Referee: score this round]
+
+    Referee -->|good enough, plateaued| END
+    Referee -->|keep going, max 4 rounds| AdvanceRound[Advance round]
+    AdvanceRound --> CriticTech
+    AdvanceRound --> CriticSecurity
+    AdvanceRound --> CriticUser
+    AdvanceRound --> CriticFinance
+```
+
 ## Project layout
 
 ```
