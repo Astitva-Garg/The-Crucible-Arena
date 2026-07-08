@@ -22,32 +22,31 @@ The output is a Markdown report showing how the spec changed round by round, wha
 
 ```mermaid
 flowchart TD
-    START([Start]) --> InitialScore[Initial referee score<br/>on raw draft]
-    InitialScore -->|already strong| END([End])
-    InitialScore -->|needs work| EnterArena[Enter arena]
+    Start([Idea in]) --> Draft[Draft initial spec]
+    Draft --> InitialScore{Score the draft<br/>as-is}
+    InitialScore -->|already strong| Done([Done])
+    InitialScore -->|needs work| Critics
 
-    EnterArena --> CriticTech[Technical Architect]
-    EnterArena --> CriticSecurity[Security & Compliance]
-    EnterArena --> CriticUser[Cynical User]
-    EnterArena --> CriticFinance[Finance & Business]
+    subgraph Critics [" Step 1 · Critique — runs in parallel "]
+        direction LR
+        C1[Technical Architect]
+        C2[Security & Compliance]
+        C3[Cynical User]
+        C4[Finance & Business]
+    end
 
-    CriticTech --> Sieve[Sieve: dedupe findings,<br/>check for regressions]
-    CriticSecurity --> Sieve
-    CriticUser --> Sieve
-    CriticFinance --> Sieve
+    Critics --> Sieve[Sieve — merge duplicates,<br/>flag real regressions]
 
-    Sieve --> PatchTech[Patch: technical fixes]
-    PatchTech --> PatchSecurity[Patch: security fixes]
-    PatchSecurity --> PatchUser[Patch: UX fixes]
-    PatchUser --> PatchFinance[Patch: business fixes]
-    PatchFinance --> Referee[Referee: score this round]
+    Sieve --> Patch
 
-    Referee -->|good enough, plateaued| END
-    Referee -->|keep going, max 4 rounds| AdvanceRound[Advance round]
-    AdvanceRound --> CriticTech
-    AdvanceRound --> CriticSecurity
-    AdvanceRound --> CriticUser
-    AdvanceRound --> CriticFinance
+    subgraph Patch [" Step 2 · Patch — one domain at a time "]
+        direction LR
+        P1[Fix technical<br/>flaws] --> P2[Fix security<br/>flaws] --> P3[Fix UX<br/>flaws] --> P4[Fix business<br/>flaws]
+    end
+
+    Patch --> Referee{Referee scores<br/>this round}
+    Referee -->|good enough & plateaued| Done
+    Referee -->|keep going, max 4 rounds| Critics
 ```
 
 ## Project layout
