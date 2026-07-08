@@ -1,0 +1,43 @@
+# Technical & Financial Guardrails
+
+Factual reference constraints for the Critic agents. These are approximate, order-of-magnitude industry benchmarks intended to keep critiques grounded in real numbers and harsh realities instead of vague generalities. Critics must cite specifics from here where relevant.
+
+## 1. Infrastructure, Architecture & Reliability
+- **Availability Ceilings**: A single-region deployment with no failover has a real-world availability ceiling around 99.5% (~3.6 hours/month downtime). "99.99% uptime" requires active-active multi-region failover and geo-routing.
+- **Latency Multiplication**: Any synchronous call chain with 3+ hops multiplies tail latency; a service with p99 = 200ms per hop and 3 sequential hops can see p99 tails exceed 1s.
+- **Stateful Scaling**: Stateless horizontal scaling is cheap. Stateful services (databases, session stores, WebSockets) require explicit sharding, replication, or pub/sub strategies before they can scale past a single node.
+- **Single Points of Failure (SPOF)**: Any core feature relying on a single third-party API without a fallback or circuit breaker is a SPOF. The system's availability becomes capped by the lowest SLA of its dependencies.
+- **Microservices Cost**: Splitting a monolith into microservices adds network latency (10-50ms per internal hop), serialization overhead, and requires distributed tracing. Do not suggest microservices for simple MVPs.
+- **Database Connection Pooling**: Serverless functions (like AWS Lambda) connecting directly to a relational database will quickly exhaust the database's connection pool under load unless an intermediary connection pooler (e.g., PgBouncer) is used.
+
+## 2. Third-Party API & Cloud Cost Benchmarks (Per Unit)
+- **LLM APIs (GPT-4 Class)**: ~$0.002 - $0.02 per short request. Costs compound rapidly. Uncached per-user-action LLM calls in a consumer app will bankrupt the project at scale.
+- **SMS & Communications**: ~$0.0075 - $0.01 per SMS (US), often $0.05+ internationally. SMS is completely unviable for high-frequency notifications. Use Push/Email.
+- **Managed Databases**: Small production RDS/CloudSQL starts around $50-$150/month. Scaling vertically or adding multi-AZ HA doubles this immediately.
+- **Cloud Storage & Egress**: Storage is cheap (~$0.02/GB/mo). Network Egress (bandwidth out to the internet) is expensive (~$0.05 - $0.09/GB). Video/image heavy apps must use CDNs to mitigate egress costs.
+- **Serverless Compute**: Extremely cheap for spiky, low-volume workloads, but runs 2x-5x more expensive than provisioned containers/VMs for sustained, high-throughput constant loads.
+- **Mapping & Geocoding (e.g., Google Maps)**: ~$5.00 per 1000 requests. Unbounded client-side triggers (like autocomplete on every keystroke) cause massive bill spikes.
+- **Payment Processing (Stripe/Square)**: ~2.9% + $0.30 per transaction. This flat $0.30 fee makes micro-transactions (under $1.00) economically devastating unless batched or placed on a ledger system.
+
+## 3. Code Efficiency & Algorithmic Load
+- **The N+1 Query Problem**: Fetching a list of N items, then running a separate database query for each item's details results in N+1 queries. This will freeze the app when N > 50. Must use JOINs or bulk fetching.
+- **Missing Database Indices**: Querying a table by a non-indexed column requires a full table scan O(N). As a table hits 1M+ rows, read performance collapses from milliseconds to seconds.
+- **Unbounded Arrays**: Rendering or sorting unbounded user-generated lists on the client-side (without pagination or virtual scrolling) will crash browser tabs and mobile apps due to memory limits.
+- **Heavy Client Bundles**: Shipping MBs of unoptimized Javascript increases Time-To-Interactive (TTI). On 3G networks or lower-end devices, 2MB of JS can take 5+ seconds to parse and execute.
+
+## 4. Client-Side Compute, Battery & Hardware
+- **Background Location/GPS**: Continuous GPS polling drains mobile batteries in hours. Polling more than once every 30-60 seconds is excessive. Use OS-level geofencing instead.
+- **Polling vs WebSockets**: A client-side loop polling a REST API every 1-5 seconds wastes radio power and server compute. Use WebSockets or Server-Sent Events (SSE) for real-time needs.
+- **Media Uploads**: Uncompressed 4K video or 12MP image uploads from mobile clients run 10-50MB per asset. Clients must compress/downsample locally before upload to save bandwidth and server storage.
+- **WebGL / 3D Rendering**: Sustained WebGL or complex Canvas animations lock the GPU and drain battery fast. They must be paused when the tab/app is not visible.
+
+## 5. User Friction & UX Benchmarks
+- **Onboarding Drop-off**: Every required field in a signup flow drops conversion by 2-5%. Flows longer than 5 steps before delivering core value face massive abandonment.
+- **Account Walls**: Forcing account creation before allowing a user to explore the app/product is the #1 cause of bounce rates. Allow guest modes or deferred signup where possible.
+- **Load Times (The 3-Second Rule)**: 53% of mobile site visits are abandoned if pages take longer than 3 seconds to load.
+- **Push Notification Fatigue**: Prompting for Push Notification permissions on the very first app launch results in a 60-80% denial rate. 
+
+## 6. Security, Compliance & Data Privacy
+- **PII Storage**: Storing Personally Identifiable Information (PII) or plaintext passwords creates massive liability. Passwords must be hashed (bcrypt/Argon2). PII should be encrypted at rest.
+- **Rate Limiting**: Public-facing APIs without strict IP-based or token-based rate limiting will be scraped, spammed, or hit with DDoS attacks. 
+- **CAPTCHA & Bot Protection**: SMS verification or public forms without invisible bot protection (e.g., Turnstile, reCAPTCHA) will be abused by botnets to rack up SMS charges (Toll Fraud).
